@@ -4,44 +4,30 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./data/peluqueria.db"
+  url      = "file:../data/peluqueria.db"
 }
 
 model User {
   id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
+  username  String   @unique
   password  String
   role      String   @default("employee") // admin, manager, stylist, cashier
+  name      String
   active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt String   @default("CURRENT_TIMESTAMP")
 }
 
 model Client {
-  id            String       @id @default(uuid())
-  name          String
-  phone         String       @unique
-  email         String?
-  loyaltyPoints Int          @default(0)
-  loyaltyTier   String       @default("bronce")
-  totalSpent    Float        @default(0.0)
-  appointments  Appointment[]
-  sales         Sale[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-}
-
-model Stylist {
   id            String        @id @default(uuid())
   name          String
-  specialities  String        // Lista separada por comas: "Corte,Tinte,Peinado"
-  commission    Float         @default(35.0)
+  phone         String        @unique
+  email         String?
+  loyaltyPoints Int           @default(0)
+  loyaltyTier   String        @default("bronce")
+  totalSpent    Float         @default(0.0)
   appointments  Appointment[]
-  rating        Float         @default(0.0)
-  active        Boolean       @default(true)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  sales         Sale[]
+  createdAt     String        @default("CURRENT_TIMESTAMP")
 }
 
 model Appointment {
@@ -51,46 +37,54 @@ model Appointment {
   stylistId String
   stylist   Stylist  @relation(fields: [stylistId], references: [id])
   date      String   // Formato YYYY-MM-DD
-  time      String   // Formato HH:mm
-  duration  Int      // Minutos
+  time      String   // Formato HH:MM
+  duration  Int
   status    String   @default("pending")
-  services  String   // JSON stringificado: [{"name":"Corte","price":20}]
+  services  String   // JSON stringificado o lista separada por comas
   total     Float?
   notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt String   @default("CURRENT_TIMESTAMP")
+}
+
+model Stylist {
+  id            String        @id @default(uuid())
+  name          String
+  specialities  String        // Lista separada por comas
+  commission    Float         @default(35.0)
+  appointments  Appointment[]
+  rating        Float         @default(0.0)
+  active        Boolean       @default(true)
 }
 
 model Product {
-  id          String   @id @default(uuid())
+  id          String      @id @default(uuid())
   name        String
-  sku         String   @unique
-  stock       Int      @default(0)
-  minStock    Int      @default(5)
+  sku         String      @unique
+  stock       Int         @default(0)
+  minStock    Int         @default(5)
   costPrice   Float
   sellPrice   Float
   category    String?
   description String?
   saleItems   SaleItem[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   String      @default("CURRENT_TIMESTAMP")
 }
 
 model Sale {
-  id        String     @id @default(uuid())
+  id        String      @id @default(uuid())
   clientId  String?
-  client    Client?    @relation(fields: [clientId], references: [id])
-  userId    String
+  client    Client?     @relation(fields: [clientId], references: [id])
+  date      String      @default("CURRENT_TIMESTAMP")
   total     Float
-  items     String     // JSON stringificado de los items
-  paymentMethod String @default("cash")
-  createdAt DateTime   @default(now())
+  items     SaleItem[]  // Relación inversa agregada
+  paymentMethod String  @default("cash")
+  createdAt   String    @default("CURRENT_TIMESTAMP")
 }
 
 model SaleItem {
   id        String  @id @default(uuid())
   saleId    String
-  sale      Sale    @relation(fields: [saleId], references: [id])
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   productId String
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
