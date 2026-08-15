@@ -7,6 +7,19 @@ datasource db {
   url      = "file:../data/peluqueria.db"
 }
 
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      String   @default("admin") // admin, manager, stylist, cashier
+  name      String
+  email     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+}
+
 model Client {
   id            String        @id @default(uuid())
   name          String
@@ -14,8 +27,9 @@ model Client {
   email         String?
   loyaltyPoints Int           @default(0)
   loyaltyTier   String        @default("bronce")
-  totalSpent    Decimal       @default(0)
+  totalSpent    Float         @default(0)
   appointments  Appointment[]
+  notes         String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -26,12 +40,13 @@ model Appointment {
   client    Client   @relation(fields: [clientId], references: [id])
   stylistId String
   stylist   Stylist  @relation(fields: [stylistId], references: [id])
-  date      DateTime
-  time      String
-  duration  Int
-  status    String   @default("pending")
-  services  Json
-  total     Decimal?
+  date      String   // Formato YYYY-MM-DD
+  time      String   // Formato HH:MM
+  duration  Int      // minutos
+  status    String   @default("pending") // pending, confirmed, completed, cancelled, no_show
+  services  String   @db.Text // JSON stringificado
+  total     Float?
+  notes     String?  @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -39,34 +54,40 @@ model Appointment {
 model Stylist {
   id            String        @id @default(uuid())
   name          String
-  specialities  String[]
-  commission    Decimal       @default(35)
+  specialities  String        @db.Text // Lista separada por comas
+  commission    Float         @default(35.0)
   appointments  Appointment[]
-  rating        Decimal       @default(0)
+  rating        Float         @default(0)
   active        Boolean       @default(true)
+  maxDailyApps  Int           @default(12)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
 
 model Product {
-  id        String   @id @default(uuid())
-  name      String
-  sku       String   @unique
-  stock     Int      @default(0)
-  minStock  Int      @default(5)
-  costPrice Decimal
-  sellPrice Decimal
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  sku         String   @unique
+  stock       Int      @default(0)
+  minStock    Int      @default(5)
+  costPrice   Float
+  sellPrice   Float
+  category    String?
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  role      String   @default("cashier")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Sale {
+  id            String   @id @default(uuid())
+  date          DateTime @default(now())
+  total         Float
+  items         String   @db.Text // JSON stringificado
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  clientId      String?
+  paymentMethod String   @default("cash") // cash, card, transfer
 }
 
 model CashRegister {
@@ -74,8 +95,8 @@ model CashRegister {
   userId      String
   openTime    DateTime @default(now())
   closeTime   DateTime?
-  initialCash Decimal  @default(0)
-  finalCash   Decimal?
+  initialCash Float    @default(0)
+  finalCash   Float?
   status      String   @default("open")
   createdAt   DateTime @default(now())
 }
