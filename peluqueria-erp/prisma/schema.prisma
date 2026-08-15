@@ -29,7 +29,7 @@ model Client {
   loyaltyTier   String        @default("bronce")
   totalSpent    Float         @default(0)
   appointments  Appointment[]
-  notes         String?       @db.Text
+  notes         String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -44,9 +44,9 @@ model Appointment {
   time      String   // Formato HH:MM
   duration  Int      // minutos
   status    String   @default("pending") // pending, confirmed, completed, cancelled, no_show
-  services  String   @db.Text // JSON stringificado
+  services  String   // JSON stringificado
   total     Float?
-  notes     String?  @db.Text
+  notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -54,7 +54,7 @@ model Appointment {
 model Stylist {
   id            String        @id @default(uuid())
   name          String
-  specialities  String        @db.Text // Lista separada por comas
+  specialities  String        // Lista separada por comas
   commission    Float         @default(35.0)
   appointments  Appointment[]
   rating        Float         @default(0)
@@ -73,7 +73,7 @@ model Product {
   costPrice   Float
   sellPrice   Float
   category    String?
-  description String?  @db.Text
+  description String?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -83,7 +83,7 @@ model Sale {
   id            String   @id @default(uuid())
   date          DateTime @default(now())
   total         Float
-  items         String   @db.Text // JSON stringificado
+  items         String   // JSON stringificado
   userId        String
   user          User     @relation(fields: [userId], references: [id])
   clientId      String?
