@@ -4,32 +4,42 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../data/peluqueria.db"
+  url      = "file:./data/peluqueria.db"
 }
 
 model User {
   id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  role      String   @default("admin") // admin, manager, stylist, cashier
   name      String
-  email     String?
+  email     String   @unique
+  password  String
+  role      String   @default("employee") // admin, manager, stylist, cashier
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  sales     Sale[]
 }
 
 model Client {
+  id            String       @id @default(uuid())
+  name          String
+  phone         String       @unique
+  email         String?
+  loyaltyPoints Int          @default(0)
+  loyaltyTier   String       @default("bronce")
+  totalSpent    Float        @default(0.0)
+  appointments  Appointment[]
+  sales         Sale[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Stylist {
   id            String        @id @default(uuid())
   name          String
-  phone         String        @unique
-  email         String?
-  loyaltyPoints Int           @default(0)
-  loyaltyTier   String        @default("bronce")
-  totalSpent    Float         @default(0)
+  specialities  String        // Lista separada por comas: "Corte,Tinte,Peinado"
+  commission    Float         @default(35.0)
   appointments  Appointment[]
-  notes         String?
+  rating        Float         @default(0.0)
+  active        Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -41,27 +51,14 @@ model Appointment {
   stylistId String
   stylist   Stylist  @relation(fields: [stylistId], references: [id])
   date      String   // Formato YYYY-MM-DD
-  time      String   // Formato HH:MM
-  duration  Int      // minutos
-  status    String   @default("pending") // pending, confirmed, completed, cancelled, no_show
-  services  String   // JSON stringificado
+  time      String   // Formato HH:mm
+  duration  Int      // Minutos
+  status    String   @default("pending")
+  services  String   // JSON stringificado: [{"name":"Corte","price":20}]
   total     Float?
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model Stylist {
-  id            String        @id @default(uuid())
-  name          String
-  specialities  String        // Lista separada por comas
-  commission    Float         @default(35.0)
-  appointments  Appointment[]
-  rating        Float         @default(0)
-  active        Boolean       @default(true)
-  maxDailyApps  Int           @default(12)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
 }
 
 model Product {
@@ -74,29 +71,28 @@ model Product {
   sellPrice   Float
   category    String?
   description String?
-  active      Boolean  @default(true)
+  saleItems   SaleItem[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model Sale {
-  id            String   @id @default(uuid())
-  date          DateTime @default(now())
-  total         Float
-  items         String   // JSON stringificado
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  clientId      String?
-  paymentMethod String   @default("cash") // cash, card, transfer
+  id        String     @id @default(uuid())
+  clientId  String?
+  client    Client?    @relation(fields: [clientId], references: [id])
+  userId    String
+  total     Float
+  items     String     // JSON stringificado de los items
+  paymentMethod String @default("cash")
+  createdAt DateTime   @default(now())
 }
 
-model CashRegister {
-  id          String   @id @default(uuid())
-  userId      String
-  openTime    DateTime @default(now())
-  closeTime   DateTime?
-  initialCash Float    @default(0)
-  finalCash   Float?
-  status      String   @default("open")
-  createdAt   DateTime @default(now())
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
 }
