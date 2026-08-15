@@ -1,6 +1,6 @@
 # Peluquería ERP - Sistema de Gestión para Peluquería Femenina
 
-Sistema de escritorio para gestión de peluquería femenina usando Electron, PostgreSQL local y Node.js embebido, sin necesidad de Internet.
+Sistema de escritorio para gestión de peluquería femenina usando Electron, SQLite y Node.js embebido, sin necesidad de Internet ni instalaciones adicionales.
 
 ## 🚀 Características Principales
 
@@ -12,16 +12,17 @@ Sistema de escritorio para gestión de peluquería femenina usando Electron, Pos
 - **Reportes** exportables a PDF/Excel
 - **Backups** automáticos y manuales
 - **Acceso en Red Local** desde cualquier dispositivo
+- **SQLite** - Base de datos en un solo archivo, sin instalaciones
 
 ## 📋 Requisitos Previos
 
 ### Para Desarrollo
 - Node.js 18+
-- PostgreSQL 15+
 - npm o yarn
 
 ### Para Producción
-- Solo se requiere el instalador generado
+- Solo se requiere el instalador generado (.exe)
+- **NO requiere PostgreSQL ni otras dependencias externas**
 
 ## 🛠️ Instalación para Desarrollo
 
@@ -36,36 +37,28 @@ cd peluqueria-erp
 npm install
 ```
 
-### 3. Configurar PostgreSQL
-
-#### Opción A: Instalación automática (recomendado)
+### 3. Configurar base de datos SQLite
 ```bash
-npm run postgres:install
-```
-
-#### Opción B: Instalación manual
-1. Instalar PostgreSQL 15+ desde https://www.postgresql.org/download/
-2. Crear usuario y base de datos manualmente
-3. Configurar el archivo `.env` con las credenciales
-
-### 4. Configurar base de datos
-```bash
-npm run db:setup
-npm run db:migrate
 npm run db:seed
 ```
 
-### 5. Ejecutar en modo desarrollo
+Este comando crea automáticamente:
+- Archivo `data/peluqueria.db` con la base de datos
+- Tablas necesarias
+- Datos de prueba iniciales
+
+### 4. Ejecutar en modo desarrollo
 ```bash
 npm run dev
 ```
 
 ## 📦 Generar Instaladores
 
-### Windows
+### Windows (Recomendado)
 ```bash
 npm run dist:win
 ```
+Genera: `dist/PeluqueriaERP Setup 1.0.0.exe`
 
 ### macOS
 ```bash
@@ -77,15 +70,27 @@ npm run dist:mac
 npm run dist:linux
 ```
 
-## 🗄️ Estructura de la Base de Datos
+## 🗄️ Base de Datos SQLite
 
-### Tablas Principales
+### Ventajas
+- **Un solo archivo**: `data/peluqueria.db`
+- **Sin instalación**: No requiere servidor de base de datos
+- **Portable**: Fácil de copiar y respaldar
+- **Rápido**: Optimizado para aplicaciones de escritorio
+- **Auto-contenido**: Todo incluido en el instalador .exe
+
+### Estructura de Tablas
 - **Client**: Clientes con sistema de puntos
 - **Appointment**: Citas programadas
 - **Stylist**: Estilistas con especialidades
 - **Product**: Productos de inventario
 - **User**: Usuarios del sistema
 - **CashRegister**: Caja diario
+- **Backup**: Historial de backups
+
+### Ubicación del Archivo
+- **Desarrollo**: `data/peluqueria.db` en el directorio del proyecto
+- **Producción**: `%APPDATA%/peluqueria-erp/data/peluqueria.db` (Windows)
 
 ## 🔌 API Endpoints
 
@@ -141,20 +146,30 @@ peluqueria-erp/
 ├── src/
 │   ├── main/              # Proceso principal de Electron
 │   │   ├── main.js
-│   │   └── preload.js
+│   │   ├── preload.js
+│   │   └── ipcHandlers.js
 │   └── backend/           # Backend Express
 │       ├── server.js
-│       ├── routes/
-│       └── services/
+│       ├── routes/        # Endpoints API
+│       ├── controllers/   # Lógica de negocio
+│       └── services/      # Servicios
 ├── frontend/              # Interfaz de usuario
 │   ├── index.html
 │   ├── css/
+│   │   └── main.css
 │   └── js/
-├── prisma/                # Schema y migraciones
-│   ├── schema.prisma
-│   └── seed.js
-├── scripts/               # Scripts de instalación
-└── config/                # Configuración de DB
+│       ├── app.js
+│       ├── router.js
+│       ├── services/
+│       └── modules/
+├── data/                  # Base de datos SQLite
+│   └── peluqueria.db
+├── backups/               # Backups automáticos y manuales
+├── scripts/               # Scripts de inicialización
+│   └── init-db.js
+├── package.json
+├── electron-builder.yml
+└── README.md
 ```
 
 ## 🔧 Comandos Disponibles
@@ -163,11 +178,11 @@ peluqueria-erp/
 |---------|-------------|
 | `npm start` | Iniciar aplicación en producción |
 | `npm run dev` | Iniciar en modo desarrollo |
-| `npm run dist` | Generar instaladores |
-| `npm run postgres:install` | Instalar PostgreSQL |
-| `npm run db:setup` | Configurar base de datos |
-| `npm run db:migrate` | Ejecutar migraciones |
-| `npm run db:seed` | Cargar datos de prueba |
+| `npm run dist:win` | Generar instalador Windows (.exe) |
+| `npm run dist:mac` | Generar instalador macOS (.dmg) |
+| `npm run dist:linux` | Generar instalador Linux (.AppImage) |
+| `npm run db:seed` | Crear base de datos SQLite con datos de prueba |
+| `npm run backup` | Crear backup manual de la base de datos |
 
 ## 🌐 Acceso en Red Local
 
@@ -177,15 +192,23 @@ El servidor se ejecuta en `0.0.0.0:3000`, permitiendo acceso desde otros disposi
 http://<IP-del-servidor>:3000
 ```
 
+Desde otros dispositivos en la red local, puedes acceder a la interfaz web sin instalar nada.
+
 ## 💾 Backups
 
 ### Crear Backup Manual
 1. Menú → Archivo → Crear Backup
 2. O usar IPC: `window.electron.ipcRenderer.invoke('create-backup')`
+3. El backup se guarda en `backups/peluqueria-YYYY-MM-DD-HH-mm.db`
 
 ### Restaurar Backup
 1. Menú → Archivo → Restaurar Backup
 2. Seleccionar backup de la lista
+3. Confirmar restauración
+
+### Backup Automático
+- Se crea automáticamente al cerrar la aplicación
+- Ubicación: `backups/auto/`
 
 ## 🎨 Personalización
 
@@ -199,6 +222,24 @@ Los colores y estilos pueden modificarse en `frontend/css/main.css`:
 }
 ```
 
+## ⚡ Instalación Rápida en Windows
+
+1. **Descargar el instalador**: `PeluqueriaERP Setup 1.0.0.exe`
+2. **Ejecutar instalador**: Doble clic en el .exe
+3. **Seguir asistente**: Elegir ubicación de instalación
+4. **Ejecutar aplicación**: Icono en escritorio o menú inicio
+5. **Iniciar sesión**: admin / admin123
+
+¡Listo! No requiere PostgreSQL ni configuraciones adicionales.
+
+## 🔒 Seguridad
+
+- Autenticación JWT para usuarios
+- Roles: admin, manager, stylist, cashier
+- Validación de datos en backend
+- Contraseñas encriptadas con bcrypt
+- Context isolation en Electron
+
 ## 📝 Licencia
 
 MIT License
@@ -210,4 +251,5 @@ Para reportar problemas o solicitar características, abra un issue en el reposi
 ---
 
 **Versión**: 1.0.0  
+**Base de Datos**: SQLite (archivo único)  
 **Última actualización**: 2024
